@@ -2,7 +2,7 @@
 
 from PIL import Image
 import numpy as np
-from numba import jit, cuda
+
 
 class Sphere:
     def __init__(self, radius, center):
@@ -13,15 +13,15 @@ class Sphere:
         c = self.center
         r = self.radius
         t = np.dot(c-origin, ray) 
-        t1= np.square(np.dot(c-origin, ray))
+        t1= np.square(t)
         t1-= (np.dot(origin-c, origin-c) - np.square(r))
-        t1 = np.square(t1)
+        if t1 < 0:
+            return None
+        t1 = np.sqrt(t1)
         t-=t1
         if t < 0:
             return None
-        #dist = origin + t01*ray
-        #dist = np.linalg.norm(t-origin)
-        #dist = (dist-1)/dist
+
         return t
     
 class Plane:
@@ -39,16 +39,13 @@ class Plane:
         return t
     
 class Triangle:
-    def __init__(self, pointsABC, sizesRS):
+    def __init__(self, pointsABC):
         self.points = pointsABC
-        self.sizes = sizesRS
         
     def intersectionParameter(self, ray, origin):
         a = self.points[0]
         b = self.points[1]
         c = self.points[2]
-        r = self.sizes[0]
-        s = self.sizes[1]
         
         u = b - a
         v = c - a
@@ -104,41 +101,28 @@ def raytrace(w, h, background_color, objectlist):
     
 # image width , h e i g h t
 w, h = 600, 400
-# g e n e r a t e a g r a y s c a l e ( one c h a n n e l ) n o i s e image
-gs_img1 = np.random.rand(w,h)
-gs_img2 = np.random.rand(w,h)
-gs_img3 = np.random.rand(w,h)
-# s c a l e image v a l u e s t o [ 0 , 2 5 5 ]
-gs_img1 = 255* gs_img1
-gs_img2 = 255* gs_img2
-gs_img3 = 255* gs_img3
-# g e n e r a t e 8 B i t PIL image . These a re t r a n s p o s e d compared
-# t o numpy a r r a y s .
-r = Image.fromarray(gs_img1.astype(np.uint8).T)
-g = Image.fromarray(gs_img2.astype(np.uint8).T)
-b = Image.fromarray(gs_img3.astype(np.uint8).T)
 
-# make RGB image ( h e r e a l l t h r e e c h a n n e l s a re t h e same )
-rgb = [r,g,b]
-# merge c h a n n e l s and s a g e image
-Image.merge("RGB",rgb).save("noise_image.png")
+a = np.array([0,1,1])
+b = np.array([-1,3,1])
+c = np.array([1,3,1])
 
 objectlist = []
-sphere1 = Sphere(5, np.array([1,5,-30]))
+sphere1 = Sphere(0.5, a)
 objectlist.append(sphere1)
 
-sphere2 = Sphere(10, np.array([1,-10,-30]))
+sphere2 = Sphere(0.5, b)
 objectlist.append(sphere2)
+
+sphere3 = Sphere(0.5, c)
+objectlist.append(sphere3)
 
 plane1 = Plane(np.array([0,1,0]), np.array([1,4,-30]))
 objectlist.append(plane1)
 
-a = np.array([1,0,0])
-b = np.array([1,5,0])
-c = np.array([3,0,0])
 
-tria1 = Triangle(np.array([a,b,c]), np.array([10,15]))
+tria1 = Triangle(np.array([a,b,c]))
 objectlist.append(tria1)
+
 
 rayimg = raytrace(w,h, 255, objectlist)
 rayimg.save("ersteKugel.png")
